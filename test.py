@@ -20,7 +20,7 @@ Builder.load_string('''
         font_size: 30
         canvas:
             Color:
-                rgb: randint(1,10),randint(1,10),randint(1,10)
+                rgb: randint(0,1),randint(0,1),randint(0,1)
             Line:
                 circle:self.center_x, self.center_y, 90, 0, self.angle % 360
                 width: 5
@@ -30,7 +30,7 @@ Builder.load_string('''
         on_press: anim_label.start()
         ''')
 
-COUNT = 2
+COUNT = 1
 
 
 class RootWidget(BoxLayout):
@@ -45,12 +45,10 @@ class CountDownLbl(Label):
         super(CountDownLbl, self).__init__(**kwargs)
 
     def start(self):
-        self.startCount = COUNT
-        print(dir(self.canvas))
-        print(dir(RootWidget))
         self.anim = Animation(angle=360 * self.startCount,  duration=self.startCount)
         self.anim.bind(on_complete=self.finish)
         self.anim.start(self)
+        self.anim.animated_properties
 
     def finish(self, animation, incr_crude_clock):
         CountDownLbl.startCount = COUNT
