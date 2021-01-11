@@ -2,57 +2,77 @@
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.uix.label import Label
-from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.floatlayout import FloatLayout
 from kivy.properties import NumericProperty
 from kivy.animation import Animation
-from kivy.config import Config
 
-Config.set('modules', 'random', '')
 
 Builder.load_string('''
 
 <RootWidget>:
     #:import randint  random.randint
     orientation: "vertical"
-    CountDownLbl:
-        id: anim_label
-        text: "{0:.3f}".format(float(self.startCount - self.angle / 360))
-        font_size: 30
+    SecondLabel:
+        id: circle
         canvas:
             Color:
-                rgb: randint(0,1),randint(0,1),randint(0,1)
+                rgb: 1,0,0
+            Line:
+                circle:self.center_x, self.center_y, 60
+                width: 60
+    CountDownLbl:
+        id: anim_label
+        font_size: 30
+        text: "{}.000".format(self.timer_duration)
+        canvas:
+            Color:
+                rgb: 0,1,0
             Line:
                 circle:self.center_x, self.center_y, 90, 0, self.angle % 360
-                width: 5
+                width: 30
     Button:
         size_hint_y: 0.1
         text: "Start"
         on_press: anim_label.start()
         ''')
 
-COUNT = 1
+TIMER_DURATION = 5
 
 
-class RootWidget(BoxLayout):
+class RootWidget(FloatLayout):
+    pass
+
+
+class SecondLabel(Label):
     pass
 
 
 class CountDownLbl(Label):
-    startCount = COUNT
+    global ANIM_DURATION
     angle = NumericProperty(0)
 
     def __init__(self, **kwargs):
         super(CountDownLbl, self).__init__(**kwargs)
+        self.anim_duration = TIMER_DURATION
+        self.timer_duration = TIMER_DURATION
+        self.in_progress = False
 
     def start(self):
-        self.anim = Animation(angle=360 * self.startCount,  duration=self.startCount)
-        self.anim.bind(on_complete=self.finish)
-        self.anim.start(self)
-        self.anim.animated_properties
+        if not self.in_progress:
+            self.anim = Animation(angle=360 * self.anim_duration,  duration=self.timer_duration)
+            self.in_progress = True
+            self.anim.bind(on_complete=self.finish, on_progress=self.update_timer)
+            self.anim.start(self)
+            self.anim_duration += TIMER_DURATION
 
-    def finish(self, animation, incr_crude_clock):
-        CountDownLbl.startCount = COUNT
-        incr_crude_clock.text = "FINISHED"
+    def finish(self, animation, widget):
+        widget.text = "FINISHED"
+        self.in_progress = False
+
+    def update_timer(self, animation, widget, progression):
+        text = ((self.timer_duration * 60000)*(1-progression))/60000
+        widget.text = "{0:.3f}".format(float(text))
+
 
 
 class TestApp(App):
