@@ -11,33 +11,61 @@ from kivy.animation import Animation
 
 Builder.load_string('''
 
-<RootWidget>:
-    #:import randint  random.randint
-    #:import get_color_from_hex kivy.utils.get_color_from_hex
-    BoxLayout:
-        orientation: "vertical"
+<KartTimer@Timer>:
+    GridLayout:
+        cols: 2
+        row_default_height: 40
+        row_default_width: 40
+        BoxLayout:
+            Button:
+                text: "Start"
+                on_press: anim_label.start()
+            Button:
+                text: "Stop"
+                on_press: anim_label.stop()
+            Button:
+                text: "Remove"
+                on_press: anim_label.remove()
+            TextInput:
+                id: timer_value
+                hint_text: "pit stop time in seconds"
+                on_text: anim_label.update_timer_value(self.text)
         CountDownLbl:
-            timer_duration: 1
+            timer_duration: 5
             markup: True
             id: anim_label
-            font_size: 30
-            kart_number: 1
-            kart_text: "[color={0}]Kart  {1}[/color] \\n ".format(self.Green, self.kart_number)
+            font_size: self.height * 0.4
+            kart_number: 3
+            kart_text: "[color={0}]Kart  {1}[/color] ".format(self.Green, self.kart_number)
             text: "{0}[color={1}]{2}.000[/color]".format(self.kart_text,self.Red,self.timer_duration)
             canvas:
                 Color:
                     rgb: get_color_from_hex(self.Yellow)
                 Line:
-                    circle:self.center_x, self.center_y, 90
+#                    circle:self.center_x, self.center_y, 90
+                    rectangle: self.x, self.y, self.width, self.height
                     width: 15
-        Button:
-            size_hint_y: 0.1
-            text: "Start"
-            on_press: anim_label.start()
+
+<RootWidget>:
+    #:import randint  random.randint
+    #:import get_color_from_hex kivy.utils.get_color_from_hex
+    GridLayout:
+        cols: 1
+        KartTimer:
+            kart_number: 2
+        KartTimer:
+            kart_number: 2
+        KartTimer:
+            kart_number: 2
         ''')
 
 
 class RootWidget(BoxLayout):
+    pass
+
+
+class Timer(BoxLayout):
+    kart_number: NumericProperty(0)
     pass
 
 
@@ -46,6 +74,7 @@ class SecondLabel(Label):
 
 
 class CountDownLbl(Label):
+    kart_number: NumericProperty(0)
     Yellow = "#F9F900"
     Red = "F90000"
     Green = "41FD00"
@@ -66,6 +95,23 @@ class CountDownLbl(Label):
             self.in_progress = True
             self.anim.bind(on_complete=self.finish, on_progress=self.update_timer)
             self.anim.start(self)
+
+    def update_timer_value(self, value):
+        if not self.in_progress:
+            try:
+                value = int(value)
+                print(self.timer_duration)
+                self.timer_duration = value
+                print(self.timer_duration)
+            except ValueError as E:
+                print("{} is not int".format(E))
+
+    def remove(self):
+        self.remove_widget(self)
+
+    def stop(self):
+        if hasattr(self, 'anim'):
+            self.anim.stop(self)
 
     def finish(self, animation, widget):
         widget.text = "{}[color={}] GO!!!! [/color]".format(self.kart_text, self.Green)
