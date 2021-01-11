@@ -21,6 +21,7 @@ Builder.load_string('''
                 circle:self.center_x, self.center_y, 60
                 width: 60
     CountDownLbl:
+        timer_duration: 3
         id: anim_label
         font_size: 30
         text: "{}.000".format(self.timer_duration)
@@ -49,11 +50,11 @@ class SecondLabel(Label):
 
 class CountDownLbl(Label):
     angle = NumericProperty(0)
+    timer_duration = NumericProperty(0)
 
     def __init__(self, **kwargs):
         super(CountDownLbl, self).__init__(**kwargs)
-        self.anim_duration = TIMER_DURATION
-        self.timer_duration = TIMER_DURATION
+        self.anim_duration = self.timer_duration
         self.in_progress = False
 
     def start(self):
