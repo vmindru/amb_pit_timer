@@ -48,7 +48,6 @@ class SecondLabel(Label):
 
 
 class CountDownLbl(Label):
-    global ANIM_DURATION
     angle = NumericProperty(0)
 
     def __init__(self, **kwargs):
