@@ -2,26 +2,26 @@
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.uix.label import Label
-from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import NumericProperty
 from kivy.animation import Animation
 
 
 Builder.load_string('''
 
-<RootWidget>:
-    #:import randint  random.randint
-    orientation: "vertical"
-    SecondLabel:
-        id: circle
-        canvas:
-            Color:
-                rgb: 1,0,0
-            Line:
-                circle:self.center_x, self.center_y, 60
-                width: 60
+<Timer@CountDown>:
+    orientation: "horizontal"
+    id: count_down
+    timer_duration: 0
+    BoxLayout:
+        orientation: "vertical"
+        Button:
+            id: "button_{}".format(timer.id)
+            size_hint_y: 0.1
+            text: "Start"
+            on_press: anim_label.start()
     CountDownLbl:
-        timer_duration: 3
+        timer_duration: count_down.timer_duration
         id: anim_label
         font_size: 30
         text: "{}.000".format(self.timer_duration)
@@ -31,14 +31,22 @@ Builder.load_string('''
             Line:
                 circle:self.center_x, self.center_y, 90, 0, self.angle % 360
                 width: 30
-    Button:
-        size_hint_y: 0.1
-        text: "Start"
-        on_press: anim_label.start()
+
+
+<RootWidget>:
+    #:import randint  random.randint
+    orientation: "vertical"
+    Timer:
+        timer_duration: 10
+    Timer:
+        timer_duration: 20
         ''')
 
+class CountDown(BoxLayout):
+    timer_duration = NumericProperty(0)
+    pass
 
-class RootWidget(FloatLayout):
+class RootWidget(BoxLayout):
     pass
 
 
@@ -56,6 +64,7 @@ class CountDownLbl(Label):
         self.in_progress = False
 
     def start(self):
+        print(self.ids)
         if not self.in_progress:
             self.anim_duration += self.timer_duration
             self.anim = Animation(angle=360 * self.anim_duration,  duration=self.timer_duration)
