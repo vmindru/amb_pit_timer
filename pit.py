@@ -12,6 +12,9 @@ from kivy.animation import Animation
 Builder.load_string('''
 
 <KartTimer@Timer>:
+    id: kart_timer
+    kart_number: 0
+    timer_duration: 30
     GridLayout:
         cols: 2
         row_default_height: 40
@@ -23,19 +26,16 @@ Builder.load_string('''
             Button:
                 text: "Stop"
                 on_press: anim_label.stop()
-            Button:
-                text: "Remove"
-                on_press: anim_label.remove()
             TextInput:
                 id: timer_value
                 hint_text: "pit stop time in seconds"
                 on_text: anim_label.update_timer_value(self.text)
         CountDownLbl:
-            timer_duration: 5
+            timer_duration: kart_timer.timer_duration
             markup: True
             id: anim_label
-            font_size: self.height * 0.4
-            kart_number: 3
+            font_size: self.height * 0.6
+            kart_number: kart_timer.kart_number
             kart_text: "[color={0}]Kart  {1}[/color] ".format(self.Green, self.kart_number)
             text: "{0}[color={1}]{2}.000[/color]".format(self.kart_text,self.Red,self.timer_duration)
             canvas:
@@ -49,18 +49,26 @@ Builder.load_string('''
 <RootWidget>:
     #:import randint  random.randint
     #:import get_color_from_hex kivy.utils.get_color_from_hex
-    GridLayout:
-        cols: 1
+    BoxLayout:
+        orientation: 'vertical'
+        KartTimer:
+            kart_number: 1
         KartTimer:
             kart_number: 2
         KartTimer:
-            kart_number: 2
+            kart_number: 3
         KartTimer:
-            kart_number: 2
+            kart_number: 4
+        KartTimer:
+            kart_number: 5
+        KartTimer
+            kart_number: 6
         ''')
 
 
 class RootWidget(BoxLayout):
+    def on_released(self):
+        self.add_widget(KartTimer())
     pass
 
 
@@ -74,7 +82,7 @@ class SecondLabel(Label):
 
 
 class CountDownLbl(Label):
-    kart_number: NumericProperty(0)
+    kartgnumber: NumericProperty(0)
     Yellow = "#F9F900"
     Red = "F90000"
     Green = "41FD00"
@@ -106,10 +114,10 @@ class CountDownLbl(Label):
             except ValueError as E:
                 print("{} is not int".format(E))
 
-    def remove(self):
-        self.remove_widget(self)
-
     def stop(self):
+        print(len(self.parent.parent.parent.children))
+        print(self.parent.parent.parent.children)
+        print(self.parent.parent.children)
         if hasattr(self, 'anim'):
             self.anim.stop(self)
 
@@ -120,6 +128,7 @@ class CountDownLbl(Label):
     def update_timer(self, animation, widget, progression):
         text = ((self.timer_duration * 60000)*(1-progression))/60000
         widget.text = "{1}[color={2}]{0:.3f}[/color]".format(float(text), self.kart_text, self.Red)
+
 
 
 class TestApp(App):
