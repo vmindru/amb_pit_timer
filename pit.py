@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+from kivy.support import install_twisted_reactor
+install_twisted_reactor()
+from twisted.internet import reactor, protocol
+
 from kivy.app import App
 from kivy.utils import get_color_from_hex
 from kivy.lang import Builder
@@ -7,10 +11,12 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import NumericProperty
 from kivy.properties import StringProperty
 from kivy.animation import Animation
-from kivy.clock import Clock
-from AmbP3.decoder import Connection
+# from kivy.clock import Clock
+# from AmbP3.decoder import Connection
 from AmbP3.decoder import p3decode
+
 import yaml
+
 
 KART_NUMBERS_FILE = 'kart_numbers.yaml'
 MAIN_CONFIG = 'pit_config.yaml'
@@ -85,18 +91,8 @@ Builder.load_string('''
 
 class RootWidget(BoxLayout):
     def __init__(self):
-        self.decoder = Connection(IP, PORT)
-        self.decoder.connect()
-        Clock.schedule_interval(self.get_passes, 0.4)
+        self.connect_to_server()
         super(RootWidget, self).__init__()
-
-    def get_passes(self, dt):
-        for data in self.decoder.read():
-            decoded_header, decoded_body = p3decode(data)
-            if 'TOR' in decoded_body['RESULT']:
-                if 'PASSING' in decoded_body['RESULT']['TOR']:
-                    transponder = int(decoded_body['RESULT']['TRANSPONDER'].decode(), 16)
-                    self.start(transponder)
 
     def start(self, transponder):
         parent = self.children[0]
@@ -117,6 +113,21 @@ class RootWidget(BoxLayout):
             parent.remove_widget(child)
             parent.add_widget(child, index=5)
             child.children[0].children[0].start()
+
+    def print_message(self, data):
+        print(data)
+
+    def process_message(self, data):
+        decoded_header, decoded_body = p3decode(data)
+        print(decoded_header, decoded_body)
+        if 'TOR' in decoded_body['RESULT']:
+            if 'PASSING' in decoded_body['RESULT']['TOR']:
+                transponder = int(decoded_body['RESULT']['TRANSPONDER'].decode(), 16)
+                self.start(transponder)
+        print(self.children)
+
+    def connect_to_server(self):
+        reactor.connectTCP(IP, PORT, AmbClientFactory(self))
 
 
 class Timer(BoxLayout):
@@ -146,7 +157,7 @@ class CountDownLbl(Label):
     def start(self):
         if not self.in_progress:
             self.anim_duration += self.timer_duration
-            self.anim = Animation(angle=360 * self.anim_duration,  duration=self.timer_duration)
+            self.anim = Animation(angle=360 * self.anim_duration, duration=self.timer_duration)
             self.in_progress = True
             self.anim.bind(on_complete=self.finish, on_progress=self.update_timer)
             self.anim.start(self)
@@ -168,13 +179,38 @@ class CountDownLbl(Label):
         self.in_progress = False
 
     def update_timer(self, animation, widget, progression):
-        text = ((self.timer_duration * 60000)*(1-progression))/60000
+        text = ((self.timer_duration * 60000) * (1 - progression)) / 60000
         widget.text = "{1}[color={2}]{0:.1f}[/color]".format(float(text), self.kart_text, self.Red)
 
 
 class TestApp(App):
     def build(self):
         return RootWidget()
+
+
+class AmbClient(protocol.Protocol):
+    def connectionMade(self):
+        # PROCESS HERE CONNECTION
+        pass
+
+    def dataReceived(self, data):
+        self.factory.app.process_message(data)
+
+
+class AmbClientFactory(protocol.ClientFactory):
+    protocol = AmbClient
+
+    def __init__(self, app):
+        self.app = app
+
+    def startedConnecting(self, connector):
+        self.app.print_message('Started to connect.')
+
+    def clientConnectionLost(self, connector, reason):
+        self.app.print_message('Lost connection.')
+
+    def clientConnectionFailed(self, connector, reason):
+        self.app.print_message('Connection failed.')
 
 
 def main():
@@ -196,7 +232,6 @@ def read_yaml_config(YAML_FILE):
     except yaml.YAMLError:
         print("Failed to read config, something wrong iwth YAML content in {}".foramt(YAML_FILE))
     return DATA
-
 
 
 if __name__ == '__main__':
