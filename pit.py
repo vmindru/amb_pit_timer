@@ -7,6 +7,12 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import NumericProperty
 from kivy.properties import StringProperty
 from kivy.animation import Animation
+from kivy.clock import Clock
+from AmbP3.decoder import Connection
+from AmbP3.decoder import p3decode
+
+IP = '127.0.0.1'
+PORT = 12001
 
 
 Builder.load_string('''
@@ -14,6 +20,7 @@ Builder.load_string('''
 <KartTimer@Timer>:
     id: kart_timer
     kart_number: 0
+    transponder: 0
     timer_duration: 30
     GridLayout:
         cols: 2
@@ -50,25 +57,62 @@ Builder.load_string('''
     #:import randint  random.randint
     #:import get_color_from_hex kivy.utils.get_color_from_hex
     BoxLayout:
+        id: main_box
         orientation: 'vertical'
         KartTimer:
             kart_number: 1
+            transponder: 1
         KartTimer:
             kart_number: 2
+            transponder: 5691251
         KartTimer:
             kart_number: 3
+            transponder: 3
         KartTimer:
             kart_number: 4
+            transponder: 4
         KartTimer:
             kart_number: 5
+            transponder: 5
         KartTimer
             kart_number: 6
+            transponder: 6
         ''')
 
 
 class RootWidget(BoxLayout):
-    def on_released(self):
-        self.add_widget(KartTimer())
+    def __init__(self):
+        self.decoder = Connection(IP, PORT)
+        self.decoder.connect()
+        Clock.schedule_interval(self.get_passes, 0.5)
+        super(RootWidget, self).__init__()
+
+    def get_passes(self, dt):
+        for data in self.decoder.read():
+            decoded_header, decoded_body = p3decode(data)
+            if 'TOR' in decoded_body['RESULT']:
+                if 'PASSING' in decoded_body['RESULT']['TOR']:
+                    transponder = int(decoded_body['RESULT']['TRANSPONDER'].decode(), 16)
+                    self.start(transponder)
+
+    def start(self, transponder):
+        parent = self.children[0]
+        children = parent.children
+        for index, child in enumerate(children):
+            if child.transponder == transponder:
+                print("found {} transp, removing kart number {}".format(transponder, child.kart_number))
+                kart_number = child.kart_number
+            else:
+                print("NOT found {} transp, removing kart number {}".format(transponder, child.kart_number))
+                child = children[0]
+                kart_number = transponder
+                child.kart_number = transponder
+                child.transponder = transponder
+            parent.remove_widget(child)
+            parent.add_widget(child, index=5)
+            child.children[0].children[0].start()
+
+
     pass
 
 
@@ -108,16 +152,11 @@ class CountDownLbl(Label):
         if not self.in_progress:
             try:
                 value = int(value)
-                print(self.timer_duration)
                 self.timer_duration = value
-                print(self.timer_duration)
             except ValueError as E:
                 print("{} is not int".format(E))
 
     def stop(self):
-        print(len(self.parent.parent.parent.children))
-        print(self.parent.parent.parent.children)
-        print(self.parent.parent.children)
         if hasattr(self, 'anim'):
             self.anim.stop(self)
 
@@ -127,8 +166,7 @@ class CountDownLbl(Label):
 
     def update_timer(self, animation, widget, progression):
         text = ((self.timer_duration * 60000)*(1-progression))/60000
-        widget.text = "{1}[color={2}]{0:.3f}[/color]".format(float(text), self.kart_text, self.Red)
-
+        widget.text = "{1}[color={2}]{0:.1f}[/color]".format(float(text), self.kart_text, self.Red)
 
 
 class TestApp(App):
@@ -136,5 +174,9 @@ class TestApp(App):
         return RootWidget()
 
 
-if __name__ == '__main__':
+def main():
     TestApp().run()
+
+
+if __name__ == '__main__':
+    main()
