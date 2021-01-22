@@ -10,9 +10,12 @@ from kivy.animation import Animation
 from kivy.clock import Clock
 from AmbP3.decoder import Connection
 from AmbP3.decoder import p3decode
+import yaml
 
-IP = '127.0.0.1'
-PORT = 12001
+KART_NUMBERS_FILE = 'kart_numbers.yaml'
+MAIN_CONFIG = 'pit_config.yaml'
+DEFAULT_IP = '127.0.0.1'
+DEFAULT_PORT = 12001
 
 
 Builder.load_string('''
@@ -84,7 +87,7 @@ class RootWidget(BoxLayout):
     def __init__(self):
         self.decoder = Connection(IP, PORT)
         self.decoder.connect()
-        Clock.schedule_interval(self.get_passes, 0.5)
+        Clock.schedule_interval(self.get_passes, 0.4)
         super(RootWidget, self).__init__()
 
     def get_passes(self, dt):
@@ -98,22 +101,22 @@ class RootWidget(BoxLayout):
     def start(self, transponder):
         parent = self.children[0]
         children = parent.children
+
+        if transponder in KART_NUMBERS:
+            kart_number = KART_NUMBERS[transponder]
+        else:
+            kart_number = transponder
+        child_index = 0
         for index, child in enumerate(children):
-            if child.transponder == transponder:
-                print("found {} transp, removing kart number {}".format(transponder, child.kart_number))
-                kart_number = child.kart_number
-            else:
-                print("NOT found {} transp, removing kart number {}".format(transponder, child.kart_number))
-                child = children[0]
-                kart_number = transponder
-                child.kart_number = transponder
-                child.transponder = transponder
+            if child.kart_number == kart_number:
+                child_index = index
+        child = children[child_index]
+        if not child.children[0].children[0].in_progress:
+            child.kart_number = kart_number
+            child.transponder = transponder
             parent.remove_widget(child)
             parent.add_widget(child, index=5)
             child.children[0].children[0].start()
-
-
-    pass
 
 
 class Timer(BoxLayout):
@@ -175,7 +178,25 @@ class TestApp(App):
 
 
 def main():
+    global IP, PORT, KART_NUMBERS
+    KART_NUMBERS = read_yaml_config(KART_NUMBERS_FILE)
+    CONFIG = read_yaml_config(MAIN_CONFIG)
+    IP = CONFIG['IP'] if 'IP' in CONFIG else DEFAULT_IP
+    PORT = CONFIG['PORT'] if 'PORT' in CONFIG else DEFAULT_PORT
     TestApp().run()
+
+
+def read_yaml_config(YAML_FILE):
+    DATA = {}
+    try:
+        with open(YAML_FILE) as yaml_file:
+            DATA = yaml.full_load(yaml_file)
+    except IOError:
+        print("could not load {}".format(YAML_FILE))
+    except yaml.YAMLError:
+        print("Failed to read config, something wrong iwth YAML content in {}".foramt(YAML_FILE))
+    return DATA
+
 
 
 if __name__ == '__main__':
