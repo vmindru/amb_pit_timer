@@ -24,69 +24,7 @@ DEFAULT_IP = '127.0.0.1'
 DEFAULT_PORT = 12001
 
 
-Builder.load_string('''
-
-<KartTimer@Timer>:
-    id: kart_timer
-    kart_number: 0
-    transponder: 0
-    timer_duration: 30
-    GridLayout:
-        cols: 2
-        row_default_height: 40
-        row_default_width: 40
-        BoxLayout:
-            Button:
-                text: "Start"
-                on_press: anim_label.start()
-            Button:
-                text: "Stop"
-                on_press: anim_label.stop()
-            TextInput:
-                id: timer_value
-                hint_text: "pit stop time in seconds"
-                on_text: anim_label.update_timer_value(self.text)
-        CountDownLbl:
-            timer_duration: kart_timer.timer_duration
-            markup: True
-            id: anim_label
-            font_size: self.height * 0.6
-            kart_number: kart_timer.kart_number
-            kart_text: "[color={0}]Kart  {1}[/color] ".format(self.Green, self.kart_number)
-            text: "{0}[color={1}]{2}.000[/color]".format(self.kart_text,self.Red,self.timer_duration)
-            canvas:
-                Color:
-                    rgb: get_color_from_hex(self.Yellow)
-                Line:
-#                    circle:self.center_x, self.center_y, 90
-                    rectangle: self.x, self.y, self.width, self.height
-                    width: 15
-
-<RootWidget>:
-    #:import randint  random.randint
-    #:import get_color_from_hex kivy.utils.get_color_from_hex
-    BoxLayout:
-        id: main_box
-        orientation: 'vertical'
-        KartTimer:
-            kart_number: 1
-            transponder: 1
-        KartTimer:
-            kart_number: 2
-            transponder: 5691251
-        KartTimer:
-            kart_number: 3
-            transponder: 3
-        KartTimer:
-            kart_number: 4
-            transponder: 4
-        KartTimer:
-            kart_number: 5
-            transponder: 5
-        KartTimer
-            kart_number: 6
-            transponder: 6
-        ''')
+Builder.load_file("pit_layout.kv")
 
 
 class RootWidget(BoxLayout):
