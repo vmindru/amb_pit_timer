@@ -14,7 +14,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import NumericProperty
 from kivy.properties import StringProperty
 from kivy.animation import Animation
-# from kivy.clock import Clock
+from kivy.clock import Clock
 # from AmbP3.decoder import Connection
 from AmbP3.decoder import p3decode
 
@@ -124,7 +124,7 @@ class CountDownLbl(Label):
         widget.text = "{1}[color={2}]{0:.1f}[/color]".format(float(text), self.kart_text, self.Red)
 
 
-class TestApp(App):
+class PitTimerApp(App):
     def build(self):
         return RootWidget()
 
@@ -149,9 +149,12 @@ class AmbClientFactory(protocol.ClientFactory):
 
     def clientConnectionLost(self, connector, reason):
         self.app.print_message('Lost connection.')
+        Clock.schedule_once(lambda dt: self.app.connect_to_server(), 1)
 
     def clientConnectionFailed(self, connector, reason):
         self.app.print_message('Connection failed.')
+        Clock.schedule_once(lambda dt: self.app.connect_to_server() , 1)
+
 
 
 def main():
@@ -160,7 +163,7 @@ def main():
     CONFIG = read_yaml_config(MAIN_CONFIG)
     IP = CONFIG['IP'] if 'IP' in CONFIG else DEFAULT_IP
     PORT = CONFIG['PORT'] if 'PORT' in CONFIG else DEFAULT_PORT
-    TestApp().run()
+    PitTimerApp().run()
 
 
 def read_yaml_config(YAML_FILE):
