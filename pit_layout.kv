@@ -17,6 +17,7 @@
                 on_press: anim_label.stop()
             TextInput:
                 id: timer_value
+                text: str(anim_label.get_default_timer())
                 hint_text: "pit stop time in seconds"
                 on_text: anim_label.update_timer_value(self.text)
         CountDownLbl:

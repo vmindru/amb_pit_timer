@@ -1,0 +1,36 @@
+<KartSend@Kart>:
+    id: transponder
+    transponder_id: 0
+    GridLayout:
+        cols: 2
+        row_default_height: 40
+        row_default_width: 40
+        transponder_id: 0
+        BoxLayout:
+            size_hint: (.2,1)
+            Button:
+                text: "Start"
+                on_press: transponder.send_start()
+            Button:
+                text: "Finish"
+                on_press: transponder.send_finish()
+            TextInput:
+                id: timer_value
+                text: str(transponder.transponder_id)
+                hint_text: "pit stop time in seconds"
+
+
+<RootWidget>:
+    transponder_id: 0
+    #:import randint  random.randint
+    #:import get_color_from_hex kivy.utils.get_color_from_hex
+    BoxLayout:
+        transponder_id: 0
+        id: main_box
+        orientation: 'vertical'
+        KartSend:
+            transponder_id: 121
+        KartSend:
+            transponder_id: 122
+        KartSend:
+            transponder_id: 123

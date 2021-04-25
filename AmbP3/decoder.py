@@ -117,7 +117,7 @@ def p3decode(data):
                 escaped_data.append(byte - 32)
                 escape_next = False
                 continue
-            if byte in [141, 141, 142]:
+            if byte in [141, 142, 143]:
                 escape_next = True
             else:
                 escaped_data.append(byte)
