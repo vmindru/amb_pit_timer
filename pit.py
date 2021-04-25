@@ -24,8 +24,9 @@ import yaml
 KART_NUMBERS_FILE = 'kart_numbers.yaml'
 MAIN_CONFIG = 'pit_config.yaml'
 DEFAULT_IP = '127.0.0.1'
-DEFAULT_PORT = 12001
-
+DEFAULT_PORT_START = 12001
+DEFAULT_PORT_FINISH = 12002
+DEFAULT_DUAL_MODE = False
 
 Builder.load_file("pit_layout.kv")
 
@@ -68,8 +69,9 @@ class RootWidget(BoxLayout):
         print(self.children)
 
     def connect_to_server(self):
-        reactor.connectTCP(IP, PORT, AmbClientFactory(self))
-
+        reactor.connectTCP(IP_START, PORT_START, AmbClientFactory(self))
+        if DUAL_MODE:
+            reactor.connectTCP(IP_FINISH, PORT_FINISH, AmbClientFactory(self))
 
 class Timer(BoxLayout):
     kart_number: NumericProperty(0)
@@ -148,21 +150,24 @@ class AmbClientFactory(protocol.ClientFactory):
         self.app.print_message('Started to connect.')
 
     def clientConnectionLost(self, connector, reason):
-        self.app.print_message('Lost connection.')
-        Clock.schedule_once(lambda dt: self.app.connect_to_server(), 1)
+        self.app.print_message('Lost connection for {}:{} with state: {}'.format(connector.host, connector.port, connector.state))
+        Clock.schedule_once(lambda dt: connector.connect() , 1)
 
     def clientConnectionFailed(self, connector, reason):
-        self.app.print_message('Connection failed.')
-        Clock.schedule_once(lambda dt: self.app.connect_to_server() , 1)
+        self.app.print_message('Connection failed for {}:{} with state: {}'.format(connector.host, connector.port, connector.state))
+        Clock.schedule_once(lambda dt: connector.connect() , 1)
 
 
 
 def main():
-    global IP, PORT, KART_NUMBERS
+    global IP_START, PORT_START, IP_FINISH, PORT_FINISH, DUAL_MODE, KART_NUMBERS
     KART_NUMBERS = read_yaml_config(KART_NUMBERS_FILE)
     CONFIG = read_yaml_config(MAIN_CONFIG)
-    IP = CONFIG['IP'] if 'IP' in CONFIG else DEFAULT_IP
-    PORT = CONFIG['PORT'] if 'PORT' in CONFIG else DEFAULT_PORT
+    IP_START = CONFIG['IP_START'] if 'IP_START' in CONFIG else DEFAULT_IP
+    PORT_START = CONFIG['PORT_START'] if 'PORT_START' in CONFIG else DEFAULT_PORT_START
+    IP_FINISH =  CONFIG['IP_FINISH'] if 'IP_FINISH' in CONFIG else DEFAULT_IP
+    PORT_FINISH = CONFIG['PORT_FINISH'] if 'PORT_FINISH' in CONFIG else DEFAULT_PORT_FINISH
+    DUAL_MODE = CONFIG['DUAL_MODE'] if 'DUAL_MODE' in CONFIG else DEFAULT_DUAL_MODE
     PitTimerApp().run()
 
 
