@@ -53,7 +53,7 @@ class RootWidget(BoxLayout):
             child.kart_number = kart_number
             child.transponder = transponder
             parent.remove_widget(child)
-            parent.add_widget(child, index=5)
+            parent.add_widget(child, index=(len(children)-1))
             child.children[0].children[0].start()
 
     def print_message(self, data):
@@ -83,19 +83,22 @@ class SecondLabel(Label):
 
 
 class CountDownLbl(Label):
-    kartgnumber: NumericProperty(0)
+    kart_number: NumericProperty(0)
     Yellow = "#F9F900"
     Red = "F90000"
     Green = "41FD00"
     bg_color = get_color_from_hex(Red)
     angle = NumericProperty(0)
     timer_duration = NumericProperty(0)
+
+
     kart_text = StringProperty("")
 
     def __init__(self, **kwargs):
         super(CountDownLbl, self).__init__(**kwargs)
         self.anim_duration = self.timer_duration
         self.in_progress = False
+        self.DEAFULT_TIMER = self.timer_duration
 
     def start(self):
         if not self.in_progress:
@@ -111,6 +114,8 @@ class CountDownLbl(Label):
                 value = int(value)
                 self.timer_duration = value
             except ValueError as E:
+                print("this is {}".format(str(self.default_timer_duration)))
+                self.update_timer_value(self.default_timer_duration)
                 print("{} is not int".format(E))
 
     def stop(self):
