@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 from kivy.support import install_twisted_reactor
+import sys
+if 'twisted.internet.reactor' in sys.modules:
+    del sys.modules['twisted.internet.reactor']
 install_twisted_reactor()
 from twisted.internet import reactor, protocol
 
