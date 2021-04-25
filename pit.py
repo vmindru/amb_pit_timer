@@ -27,6 +27,7 @@ DEFAULT_IP = '127.0.0.1'
 DEFAULT_PORT_START = 12001
 DEFAULT_PORT_FINISH = 12002
 DEFAULT_DUAL_MODE = False
+DEFAULT_TIMER_DURATION = 30
 
 Builder.load_file("pit_layout.kv")
 
@@ -98,7 +99,10 @@ class CountDownLbl(Label):
         super(CountDownLbl, self).__init__(**kwargs)
         self.anim_duration = self.timer_duration
         self.in_progress = False
-        self.DEAFULT_TIMER = self.timer_duration
+
+
+    def get_default_timer(self):
+        return TIMER_DURATION
 
     def start(self):
         if not self.in_progress:
@@ -114,8 +118,7 @@ class CountDownLbl(Label):
                 value = int(value)
                 self.timer_duration = value
             except ValueError as E:
-                print("this is {}".format(str(self.default_timer_duration)))
-                self.update_timer_value(self.default_timer_duration)
+                self.update_timer_value(self.get_default_timer())
                 print("{} is not int".format(E))
 
     def stop(self):
@@ -165,7 +168,7 @@ class AmbClientFactory(protocol.ClientFactory):
 
 
 def main():
-    global IP_START, PORT_START, IP_FINISH, PORT_FINISH, DUAL_MODE, KART_NUMBERS
+    global IP_START, PORT_START, IP_FINISH, PORT_FINISH, DUAL_MODE, KART_NUMBERS, TIMER_DURATION
     KART_NUMBERS = read_yaml_config(KART_NUMBERS_FILE)
     CONFIG = read_yaml_config(MAIN_CONFIG)
     IP_START = CONFIG['IP_START'] if 'IP_START' in CONFIG else DEFAULT_IP
@@ -173,6 +176,7 @@ def main():
     IP_FINISH =  CONFIG['IP_FINISH'] if 'IP_FINISH' in CONFIG else DEFAULT_IP
     PORT_FINISH = CONFIG['PORT_FINISH'] if 'PORT_FINISH' in CONFIG else DEFAULT_PORT_FINISH
     DUAL_MODE = CONFIG['DUAL_MODE'] if 'DUAL_MODE' in CONFIG else DEFAULT_DUAL_MODE
+    TIMER_DURATION = CONFIG['TIMER_DURATION'] if 'TIMER_DURATION' in CONFIG  else DEFAULT_TIMER_DURATION
     PitTimerApp().run()
 
 
