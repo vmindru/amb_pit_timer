@@ -15,8 +15,9 @@ from kivy.properties import NumericProperty
 from kivy.properties import StringProperty
 from kivy.animation import Animation
 from kivy.clock import Clock
-# from AmbP3.decoder import Connection
+from AmbP3.decoder import Connection.split_
 from AmbP3.decoder import p3decode
+
 
 import yaml
 
@@ -60,14 +61,30 @@ class RootWidget(BoxLayout):
     def print_message(self, data):
         print(data)
 
+    def split_records(self, data):
+        """some times server send 2 records in one message
+           concatinated, you can find those by '8f8e' EOR and SOR next to eahc other"""
+        byte_array = bytearray(data)
+        size = len(byte_array)
+        split_data = [bytearray()]
+        for index, byte in enumerate(byte_array):
+            if index != size-1 and byte == 143 and byte_array[index+1] == 142:
+                logger.debug("found delimeter byte 143,142 b'8f8e'")
+                split_data[-1].append(byte)
+                split_data.append(bytearray())
+                logger.debug("start new record")
+            else:
+                split_data[-1].append(byte)
+        return split_data
+
     def process_message(self, data):
-        decoded_header, decoded_body = p3decode(data)
-        print(decoded_header, decoded_body)
-        if 'TOR' in decoded_body['RESULT']:
-            if 'PASSING' in decoded_body['RESULT']['TOR']:
-                transponder = int(decoded_body['RESULT']['TRANSPONDER'].decode(), 16)
-                self.start(transponder)
-        print(self.children)
+        for msg in split_records(self, data):
+            decoded_header, decoded_body = p3decode(msg)
+            print("RECIVED: {}, {}".format(decoded_header,decoded_body))
+            if 'TOR' in decoded_body['RESULT']:
+                if 'PASSING' in decoded_body['RESULT']['TOR']:
+                    transponder = int(decoded_body['RESULT']['TRANSPONDER'].decode(), 16)
+                    self.start(transponder)
 
     def connect_to_server(self):
         reactor.connectTCP(IP_START, PORT_START, AmbClientFactory(self))
@@ -140,6 +157,8 @@ class PitTimerApp(App):
 
 
 class AmbClient(protocol.Protocol):
+
+
     def connectionMade(self):
         # PROCESS HERE CONNECTION
         pass
