@@ -78,7 +78,7 @@ class RootWidget(BoxLayout):
         return split_data
 
     def process_message(self, data):
-        for msg in split_records(self, data):
+        for msg in self.split_records(self, data):
             decoded_header, decoded_body = p3decode(msg)
             print("RECIVED: {}, {}".format(decoded_header,decoded_body))
             if 'TOR' in decoded_body['RESULT']:
@@ -196,6 +196,7 @@ def main():
     PORT_FINISH = CONFIG['PORT_FINISH'] if 'PORT_FINISH' in CONFIG else DEFAULT_PORT_FINISH
     DUAL_MODE = CONFIG['DUAL_MODE'] if 'DUAL_MODE' in CONFIG else DEFAULT_DUAL_MODE
     TIMER_DURATION = CONFIG['TIMER_DURATION'] if 'TIMER_DURATION' in CONFIG  else DEFAULT_TIMER_DURATION
+    print("starting with  CONFIG: {}".format(CONFIG))
     PitTimerApp().run()
 
 
