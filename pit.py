@@ -17,6 +17,9 @@ from kivy.animation import Animation
 from kivy.clock import Clock
 
 from AmbP3.decoder import p3decode
+from AmbP3.decoder import logger
+
+from time import sleep
 
 
 import yaml
@@ -38,24 +41,29 @@ class RootWidget(BoxLayout):
         self.connect_to_server()
         super(RootWidget, self).__init__()
 
-    def start(self, transponder):
+    def triger_start(self, transponder):
         parent = self.children[0]
         children = parent.children
-
-        if transponder in KART_NUMBERS:
-            kart_number = KART_NUMBERS[transponder]
-        else:
-            kart_number = transponder
-        child_index = 0
+        kart_number = KART_NUMBERS[transponder] if transponder in KART_NUMBERS else transponder
+        print("KART_NUMBERS: {}".format(KART_NUMBERS))
+        print("transponder: {}, kart: {}".format(transponder, kart_number))
         for index, child in enumerate(children):
-            if child.kart_number == kart_number:
+            countdown_widget = child.children[0].children[0]
+            if  child.kart_number  == kart_number:
+                print(child.children[0].children[0].kart_number, kart_number)
                 child_index = index
+                print("INNNNDEX: {}".format(index))
+                break
+            else:
+                child_index = 0
         child = children[child_index]
+        print("INDEX: {}".format(index))
         if not child.children[0].children[0].in_progress:
-            child.kart_number = kart_number
-            child.transponder = transponder
+            child.children[0].children[0].kart_number = kart_number
+            child.children[0].children[0].transponder = transponder
             parent.remove_widget(child)
-            parent.add_widget(child, index=(len(children)-1))
+            parent.add_widget(child, index=len(children))
+            child.children[0].children[0].index = child_index
             child.children[0].children[0].start()
 
     def print_message(self, data):
@@ -68,7 +76,7 @@ class RootWidget(BoxLayout):
         size = len(byte_array)
         split_data = [bytearray()]
         for index, byte in enumerate(byte_array):
-            if index != size-1 and byte == 143 and byte_array[index+1] == 142:
+            if index != size - 1 and byte == 143 and byte_array[index + 1] == 142:
                 logger.debug("found delimeter byte 143,142 b'8f8e'")
                 split_data[-1].append(byte)
                 split_data.append(bytearray())
@@ -78,21 +86,22 @@ class RootWidget(BoxLayout):
         return split_data
 
     def process_message(self, data):
-        for msg in self.split_records(self, data):
+        for msg in self.split_records(data):
             decoded_header, decoded_body = p3decode(msg)
-            print("RECIVED: {}, {}".format(decoded_header,decoded_body))
+            print("RECIVED: {}, {}".format(decoded_header, decoded_body))
             if 'TOR' in decoded_body['RESULT']:
                 if 'PASSING' in decoded_body['RESULT']['TOR']:
                     transponder = int(decoded_body['RESULT']['TRANSPONDER'].decode(), 16)
-                    self.start(transponder)
+                    self.triger_start(transponder)
 
     def connect_to_server(self):
         reactor.connectTCP(IP_START, PORT_START, AmbClientFactory(self))
         if DUAL_MODE:
             reactor.connectTCP(IP_FINISH, PORT_FINISH, AmbClientFactory(self))
 
+
 class Timer(BoxLayout):
-    kart_number: NumericProperty(0)
+    kart_number: 0
     pass
 
 
@@ -101,15 +110,13 @@ class SecondLabel(Label):
 
 
 class CountDownLbl(Label):
-    kart_number: NumericProperty(0)
+    kart_number: 0
     Yellow = "#F9F900"
     Red = "F90000"
     Green = "41FD00"
     bg_color = get_color_from_hex(Red)
     angle = NumericProperty(0)
     timer_duration = NumericProperty(0)
-
-
     kart_text = StringProperty("")
 
     def __init__(self, **kwargs):
@@ -117,12 +124,13 @@ class CountDownLbl(Label):
         self.anim_duration = self.timer_duration
         self.in_progress = False
 
-
     def get_default_timer(self):
         return TIMER_DURATION
 
     def start(self):
         if not self.in_progress:
+            print(type(self))
+            print(self)
             self.anim_duration += self.timer_duration
             self.anim = Animation(angle=360 * self.anim_duration, duration=self.timer_duration)
             self.in_progress = True
@@ -143,12 +151,12 @@ class CountDownLbl(Label):
             self.anim.stop(self)
 
     def finish(self, animation, widget):
-        widget.text = "{}[color={}] GO!!!! [/color]".format(self.kart_text, self.Green)
+        widget.text = "{}[color={}] GO!!!![/color]".format(self.kart_text, self.Green)
         self.in_progress = False
 
     def update_timer(self, animation, widget, progression):
         text = ((self.timer_duration * 60000) * (1 - progression)) / 60000
-        widget.text = "{1}[color={2}]{0:.1f}[/color]".format(float(text), self.kart_text, self.Red)
+        widget.text = "{1}[color={2}]{0:.1f}[/color] - {3}".format(float(text), self.kart_text, self.Red, self.index)
 
 
 class PitTimerApp(App):
@@ -157,8 +165,6 @@ class PitTimerApp(App):
 
 
 class AmbClient(protocol.Protocol):
-
-
     def connectionMade(self):
         # PROCESS HERE CONNECTION
         pass
@@ -178,24 +184,24 @@ class AmbClientFactory(protocol.ClientFactory):
 
     def clientConnectionLost(self, connector, reason):
         self.app.print_message('Lost connection for {}:{} with state: {}'.format(connector.host, connector.port, connector.state))
-        Clock.schedule_once(lambda dt: connector.connect() , 1)
+        Clock.schedule_once(lambda dt: connector.connect(), 1)
 
     def clientConnectionFailed(self, connector, reason):
         self.app.print_message('Connection failed for {}:{} with state: {}'.format(connector.host, connector.port, connector.state))
-        Clock.schedule_once(lambda dt: connector.connect() , 1)
-
+        Clock.schedule_once(lambda dt: connector.connect(), 1)
 
 
 def main():
     global IP_START, PORT_START, IP_FINISH, PORT_FINISH, DUAL_MODE, KART_NUMBERS, TIMER_DURATION
     KART_NUMBERS = read_yaml_config(KART_NUMBERS_FILE)
+    print(KART_NUMBERS)
     CONFIG = read_yaml_config(MAIN_CONFIG)
     IP_START = CONFIG['IP_START'] if 'IP_START' in CONFIG else DEFAULT_IP
     PORT_START = CONFIG['PORT_START'] if 'PORT_START' in CONFIG else DEFAULT_PORT_START
-    IP_FINISH =  CONFIG['IP_FINISH'] if 'IP_FINISH' in CONFIG else DEFAULT_IP
+    IP_FINISH = CONFIG['IP_FINISH'] if 'IP_FINISH' in CONFIG else DEFAULT_IP
     PORT_FINISH = CONFIG['PORT_FINISH'] if 'PORT_FINISH' in CONFIG else DEFAULT_PORT_FINISH
     DUAL_MODE = CONFIG['DUAL_MODE'] if 'DUAL_MODE' in CONFIG else DEFAULT_DUAL_MODE
-    TIMER_DURATION = CONFIG['TIMER_DURATION'] if 'TIMER_DURATION' in CONFIG  else DEFAULT_TIMER_DURATION
+    TIMER_DURATION = CONFIG['TIMER_DURATION'] if 'TIMER_DURATION' in CONFIG else DEFAULT_TIMER_DURATION
     print("starting with  CONFIG: {}".format(CONFIG))
     PitTimerApp().run()
 
