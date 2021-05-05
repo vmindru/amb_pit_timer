@@ -15,7 +15,7 @@ from kivy.properties import NumericProperty
 from kivy.properties import StringProperty
 from kivy.animation import Animation
 from kivy.clock import Clock
-from AmbP3.decoder import Connection.split_
+
 from AmbP3.decoder import p3decode
 
 
